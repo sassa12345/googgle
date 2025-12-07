@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>EPUB Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+    <script src="epubjs/epub.min.js"></script> <!-- epub.js ライブラリ -->
+    <script defer src="viewer.js"></script> <!-- viewer.js ロジック -->
+</head>
+<body>
+
+<!-- パスワード入力 -->
+<div id="pwBox">
+    <input type="password" id="pwInput" placeholder="pass" />
+    <button id="pwBtn">OK</button>
+</div>
+
+<!-- 巻一覧 -->
+<div id="volList"></div>
+
+<!-- ビューア -->
+<div id="viewer">
+    <button id="prevBtn" class="navBtn">&#9664;</button>
+    <button id="nextBtn" class="navBtn">&#9654;</button>
+
+    <div id="imgWrap">
+        <div id="loader">読み込み中...</div>
+        <!-- EPUB出力領域 -->
+        <div id="epubArea"></div>
+    </div>
+
+    <div id="pageInfo"></div>
+    <div id="fileName"></div>
+
+    <div id="jumpBox">
+        <button class="jumpBtn" data-jump="-3">-3章</button>
+        <button class="jumpBtn" data-jump="-1">-1章</button>
+        <button class="jumpBtn" data-jump="1">+1章</button>
+        <button class="jumpBtn" data-jump="3">+3章</button>
+    </div>
+
+    <div id="controlBox">
+        <button class="ctrlBtn" id="zoomIn">拡大</button>
+        <button class="ctrlBtn" id="zoomOut">縮小</button>
+        <button class="ctrlBtn" id="filterBtn">明るさ切替</button>
+    </div>
+
+</div>
+
+</body>
+</html>
