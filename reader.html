@@ -37,14 +37,10 @@
         /* 本とコントローラーは最初は非表示 */
         #viewer, #controls { display: none; }
 
-        /* --- 修正箇所：色の反転フィルタを削除 --- */
         #viewer { 
             flex: 1; 
             width: 100%; 
-            /* 以前あった 'filter: invert(1) hue-rotate(180deg);' を削除しました */
         }
-        /* ------------------------------------ */
-
 
         /* コントロールバー */
         #controls {
@@ -93,7 +89,9 @@
 <body>
 
     <input type="password" id="passInput" autocomplete="off">
+
     <div id="viewer"></div>
+    
     <div id="controls">
         <div class="btn-row">
             <button onclick="skip(-50)">-50</button>
@@ -115,10 +113,12 @@
         document.addEventListener('keydown', (e) => {
             if(e.key === 'd') {
                 document.body.style.display = 'none';
-                window.location.replace("https://www.google.com");
+                // 履歴を残さないリダイレクト
+                window.location.replace("https://www.google.com"); 
             }
         });
 
+        const CORRECT_PASSWORD = 'haru33haru';
         const passInput = document.getElementById('passInput');
         const viewer = document.getElementById('viewer');
         const controls = document.getElementById('controls');
@@ -128,26 +128,38 @@
         function unlockViewer() {
             passInput.style.display = 'none';
             viewer.style.display = 'block';
-            controls.style.display = 'flex';
+            controls.style.display = 'flex'; // flexに戻す
+            
+            // 認証済みマーク（セッション中のみ有効）
             sessionStorage.setItem('auth', 'true');
+            
+            // ここで初めて本を読み込む
             initReader();
         }
 
-        // 1. 既に認証済みかチェック
+        // 1. ページ読み込み時のチェック
         if (sessionStorage.getItem('auth') === 'true') {
             unlockViewer();
+        } else {
+            // 2. 未認証ならパスワード入力待ち
+            // パスワード入力フィールドにフォーカスを当てる（PCで即入力可能にする）
+            passInput.focus(); 
+
+            // **修正点**: keydownイベントで認証を処理
+            passInput.addEventListener('keydown', function(e) {
+                // Enterキーが押されたら
+                if (e.key === 'Enter') { 
+                    // 入力値が正しければ
+                    if (this.value === CORRECT_PASSWORD) {
+                        unlockViewer();
+                    } else {
+                        // 間違えたら黙ってクリア
+                        this.value = ''; 
+                    }
+                }
+            });
         }
 
-        // 2. 未認証ならパスワード入力待ち
-        passInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                if (this.value === 'haru33haru') {
-                    unlockViewer();
-                } else {
-                    this.value = '';
-                }
-            }
-        });
 
         // --- EPUBリーダー機能 ---
         function initReader() {
@@ -160,28 +172,22 @@
             rendition = book.renderTo("viewer", {
                 width: "100%",
                 height: "100%",
-                flow: "paginated"
-                /* --- 修正箇所：ビューポート設定の追加 --- */
-                // 表示領域をデバイスに合わせて自動調整し、コンテンツが画面を占領しないようにします
-                // 特定のEPUBファイルの表示が崩れる場合は、"paginated"を"scrolled-doc"に変更してみてください
+                flow: "paginated",
                 method: "default", 
                 manager: "continuous"
-                /* ------------------------------------- */
             });
 
-            // ダークテーマ設定を削除し、本の元の色を活かすようにしました
             rendition.display();
         }
 
         // ページ飛ばし機能
         async function skip(count) {
             if (!rendition) return;
-            const isNext = count > 0;
             const absCount = Math.abs(count);
             
+            // 1ページずつ連続でめくる
             for (let i = 0; i < absCount; i++) {
-                if (isNext) {
-                    // await をつけることで、1ページずつ確実にめくる処理を待機します
+                if (count > 0) {
                     await rendition.next(); 
                 } else {
                     await rendition.prev();
