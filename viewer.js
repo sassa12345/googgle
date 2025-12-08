@@ -55,7 +55,7 @@ async function openVolume(vol) {
 
     loader.style.display = "block";
 
-    const url = `/books/${vol}.epub`;
+    const url = `/googgle/books/${vol}.epub`;
 
     book = ePub(url);
     rendition = book.renderTo("epubArea", {
@@ -139,3 +139,4 @@ document.addEventListener("keydown", e => {
     if (e.key === "ArrowRight") nextPage();
     if (e.key === "ArrowLeft") prevPage();
 });
+

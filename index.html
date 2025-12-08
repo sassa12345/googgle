@@ -2,51 +2,73 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>EPUB Viewer</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="style.css">
-    <script src="epubjs/epub.min.js"></script> <!-- epub.js ライブラリ -->
-    <script defer src="viewer.js"></script> <!-- viewer.js ロジック -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novel Library</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
+        #library { display: none; } /* 最初は非表示 */
+        .book-list { list-style: none; padding: 0; }
+        .book-list li { margin: 10px 0; }
+        .book-link { 
+            display: block; padding: 15px; background: #f0f0f0; 
+            text-decoration: none; color: #333; border-radius: 5px; 
+        }
+        .book-link:hover { background: #e0e0e0; }
+        input { padding: 10px; font-size: 16px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        .error { color: red; display: none; margin-top: 10px;}
+    </style>
 </head>
 <body>
 
-<!-- パスワード入力 -->
-<div id="pwBox">
-    <input type="password" id="pwInput" placeholder="pass" />
-    <button id="pwBtn">OK</button>
-</div>
-
-<!-- 巻一覧 -->
-<div id="volList"></div>
-
-<!-- ビューア -->
-<div id="viewer">
-    <button id="prevBtn" class="navBtn">&#9664;</button>
-    <button id="nextBtn" class="navBtn">&#9654;</button>
-
-    <div id="imgWrap">
-        <div id="loader">読み込み中...</div>
-        <!-- EPUB出力領域 -->
-        <div id="epubArea"></div>
+    <div id="login">
+        <h2>パスワードを入力</h2>
+        <input type="password" id="passInput" placeholder="Password">
+        <button onclick="checkPass()">入室</button>
+        <p id="errorMsg" class="error">パスワードが違います</p>
     </div>
 
-    <div id="pageInfo"></div>
-    <div id="fileName"></div>
-
-    <div id="jumpBox">
-        <button class="jumpBtn" data-jump="-3">-3章</button>
-        <button class="jumpBtn" data-jump="-1">-1章</button>
-        <button class="jumpBtn" data-jump="1">+1章</button>
-        <button class="jumpBtn" data-jump="3">+3章</button>
+    <div id="library">
+        <h2>小説一覧</h2>
+        <ul class="book-list" id="bookListUl">
+            </ul>
     </div>
 
-    <div id="controlBox">
-        <button class="ctrlBtn" id="zoomIn">拡大</button>
-        <button class="ctrlBtn" id="zoomOut">縮小</button>
-        <button class="ctrlBtn" id="filterBtn">明るさ切替</button>
-    </div>
+    <script>
+        // 巻数リスト（ファイル名に対応）
+        const volumes = ['1', '2', '3', '4', '4.5', '5', '6', '7', '8', '9', '9.5', '10', '11', '12'];
 
-</div>
+        function checkPass() {
+            const input = document.getElementById('passInput').value;
+            // パスワード確認
+            if (input === 'haru33haru') {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('library').style.display = 'block';
+                generateList();
+                // 簡易的なセッション保存
+                sessionStorage.setItem('auth', 'true');
+            } else {
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        }
 
+        // ページ読み込み時にログイン済みかチェック
+        if (sessionStorage.getItem('auth') === 'true') {
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('library').style.display = 'block';
+            generateList();
+        }
+
+        function generateList() {
+            const ul = document.getElementById('bookListUl');
+            ul.innerHTML = ''; // クリア
+            volumes.forEach(vol => {
+                const li = document.createElement('li');
+                // reader.html にファイル名を渡すリンクを作成
+                li.innerHTML = `<a class="book-link" href="reader.html?book=epubs/${vol}.epub">第 ${vol} 巻 を読む</a>`;
+                ul.appendChild(li);
+            });
+        }
+    </script>
 </body>
 </html>
