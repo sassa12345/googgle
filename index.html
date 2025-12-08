@@ -3,69 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Novel Library</title>
+    <title>Wait...</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
-        #library { display: none; } /* 最初は非表示 */
-        .book-list { list-style: none; padding: 0; }
-        .book-list li { margin: 10px 0; }
-        .book-link { 
-            display: block; padding: 15px; background: #f0f0f0; 
-            text-decoration: none; color: #333; border-radius: 5px; 
+        /* 全体を真っ黒に */
+        body { 
+            background-color: #000; 
+            margin: 0; 
+            overflow: hidden; 
+            color: #222; /* ほぼ見えない文字色 */
         }
-        .book-link:hover { background: #e0e0e0; }
-        input { padding: 10px; font-size: 16px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        .error { color: red; display: none; margin-top: 10px;}
+        
+        /* 入力ボックス：左上、小さく、目立たない */
+        #passInput {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 80px;
+            height: 20px;
+            background: #000;
+            border: 1px solid #222; /* 非常に薄い枠線 */
+            color: #333;
+            outline: none;
+            font-size: 12px;
+            padding-left: 5px;
+        }
+
+        /* 本棚リスト：最初は非表示。表示されてもダーク */
+        #library { display: none; padding: 20px; margin-top: 30px; }
+        .book-list { list-style: none; padding: 0; }
+        .book-link { 
+            display: block; 
+            padding: 10px; 
+            border-bottom: 1px solid #222;
+            text-decoration: none; 
+            color: #444; /* 暗いグレー */
+            font-size: 14px;
+        }
+        .book-link:hover { color: #888; }
     </style>
 </head>
 <body>
 
-    <div id="login">
-        <h2>パスワードを入力</h2>
-        <input type="password" id="passInput" placeholder="Password">
-        <button onclick="checkPass()">入室</button>
-        <p id="errorMsg" class="error">パスワードが違います</p>
-    </div>
+    <input type="password" id="passInput" autocomplete="off">
 
     <div id="library">
-        <h2>小説一覧</h2>
-        <ul class="book-list" id="bookListUl">
-            </ul>
+        <ul class="book-list" id="bookListUl"></ul>
     </div>
 
     <script>
-        // 巻数リスト（ファイル名に対応）
-        const volumes = ['1', '2', '3', '4', '4.5', '5', '6', '7', '8', '9', '9.5', '10', '11', '12'];
-
-        function checkPass() {
-            const input = document.getElementById('passInput').value;
-            // パスワード確認
-            if (input === 'haru33haru') {
-                document.getElementById('login').style.display = 'none';
-                document.getElementById('library').style.display = 'block';
-                generateList();
-                // 簡易的なセッション保存
-                sessionStorage.setItem('auth', 'true');
-            } else {
-                document.getElementById('errorMsg').style.display = 'block';
+        // パニックボタン (dキーでGoogleへ)
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'd') {
+                document.body.style.display = 'none'; // 即座に消す
+                window.location.replace("https://www.google.com");
             }
-        }
+        });
 
-        // ページ読み込み時にログイン済みかチェック
+        const volumes = ['1', '2', '3', '4', '4.5', '5', '6', '7', '8', '9', '9.5', '10', '11', '12'];
+        const passInput = document.getElementById('passInput');
+
+        // Enterキーで認証
+        passInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (this.value === 'haru33haru') {
+                    this.style.display = 'none'; // 入力欄を消す
+                    document.getElementById('library').style.display = 'block';
+                    generateList();
+                    sessionStorage.setItem('auth', 'true');
+                } else {
+                    this.value = ''; // 間違えたら黙ってクリア
+                }
+            }
+        });
+
+        // ログイン済みなら即表示
         if (sessionStorage.getItem('auth') === 'true') {
-            document.getElementById('login').style.display = 'none';
+            passInput.style.display = 'none';
             document.getElementById('library').style.display = 'block';
             generateList();
         }
 
         function generateList() {
             const ul = document.getElementById('bookListUl');
-            ul.innerHTML = ''; // クリア
+            ul.innerHTML = '';
             volumes.forEach(vol => {
                 const li = document.createElement('li');
-                // reader.html にファイル名を渡すリンクを作成
-                li.innerHTML = `<a class="book-link" href="reader.html?book=epubs/${vol}.epub">第 ${vol} 巻 を読む</a>`;
+                li.innerHTML = `<a class="book-link" href="reader.html?book=epubs/${vol}.epub">Vol.${vol}</a>`;
                 ul.appendChild(li);
             });
         }
