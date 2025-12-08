@@ -37,12 +37,14 @@
         /* 本とコントローラーは最初は非表示 */
         #viewer, #controls { display: none; }
 
+        /* --- 修正箇所：色の反転フィルタを削除 --- */
         #viewer { 
             flex: 1; 
             width: 100%; 
-            /* 本の背景を反転（ダークモード化） */
-            filter: invert(1) hue-rotate(180deg); 
+            /* 以前あった 'filter: invert(1) hue-rotate(180deg);' を削除しました */
         }
+        /* ------------------------------------ */
+
 
         /* コントロールバー */
         #controls {
@@ -91,9 +93,7 @@
 <body>
 
     <input type="password" id="passInput" autocomplete="off">
-
     <div id="viewer"></div>
-    
     <div id="controls">
         <div class="btn-row">
             <button onclick="skip(-50)">-50</button>
@@ -128,12 +128,8 @@
         function unlockViewer() {
             passInput.style.display = 'none';
             viewer.style.display = 'block';
-            controls.style.display = 'flex'; // flexに戻す
-            
-            // 認証済みマーク（セッション中のみ有効）
+            controls.style.display = 'flex';
             sessionStorage.setItem('auth', 'true');
-            
-            // ここで初めて本を読み込む
             initReader();
         }
 
@@ -148,7 +144,7 @@
                 if (this.value === 'haru33haru') {
                     unlockViewer();
                 } else {
-                    this.value = ''; // 黙ってクリア
+                    this.value = '';
                 }
             }
         });
@@ -158,28 +154,23 @@
             const params = new URLSearchParams(window.location.search);
             const url = params.get('book');
 
-            if (!url) {
-                // 本の指定がない場合、黙ってindexへ戻すか、真っ黒のままにする
-                // window.location.href = "index.html"; 
-                return; 
-            }
+            if (!url) return; 
 
             book = ePub(url);
             rendition = book.renderTo("viewer", {
                 width: "100%",
                 height: "100%",
                 flow: "paginated"
+                /* --- 修正箇所：ビューポート設定の追加 --- */
+                // 表示領域をデバイスに合わせて自動調整し、コンテンツが画面を占領しないようにします
+                // 特定のEPUBファイルの表示が崩れる場合は、"paginated"を"scrolled-doc"に変更してみてください
+                method: "default", 
+                manager: "continuous"
+                /* ------------------------------------- */
             });
 
-            // ダークテーマ適用
-            rendition.themes.register("dark", {
-                body: { color: "#ccc", background: "#000" },
-                p: { "font-family": "sans-serif !important" }
-            });
-
-            rendition.display().then(() => {
-                rendition.themes.select("dark");
-            });
+            // ダークテーマ設定を削除し、本の元の色を活かすようにしました
+            rendition.display();
         }
 
         // ページ飛ばし機能
@@ -190,7 +181,8 @@
             
             for (let i = 0; i < absCount; i++) {
                 if (isNext) {
-                    await rendition.next();
+                    // await をつけることで、1ページずつ確実にめくる処理を待機します
+                    await rendition.next(); 
                 } else {
                     await rendition.prev();
                 }
