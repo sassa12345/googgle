@@ -3,64 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reader</title>
+    <title>...</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
     <style>
-        body { margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: #fff;}
-        #viewer { flex: 1; width: 100%; height: 100%; }
-        #controls { 
-            height: 50px; display: flex; justify-content: space-between; align-items: center; 
-            background: #eee; padding: 0 20px; box-sizing: border-box;
+        /* 全体設定：真っ黒 */
+        body { 
+            margin: 0; 
+            background-color: #000; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            color: #222;
         }
-        button { padding: 5px 15px; font-size: 16px; cursor: pointer;}
-        a { text-decoration: none; color: #333; font-weight: bold; }
+
+        /* パスワード入力ボックス：左上、小さく、目立たない */
+        #passInput {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 80px;
+            height: 20px;
+            background: #000;
+            border: 1px solid #111;
+            color: #333;
+            outline: none;
+            font-size: 12px;
+            padding-left: 5px;
+            z-index: 9999;
+        }
+
+        /* 本とコントローラーは最初は非表示 */
+        #viewer, #controls { display: none; }
+
+        #viewer { 
+            flex: 1; 
+            width: 100%; 
+            /* 本の背景を反転（ダークモード化） */
+            filter: invert(1) hue-rotate(180deg); 
+        }
+
+        /* コントロールバー */
+        #controls {
+            background: #111;
+            padding: 10px 0;
+            flex-direction: column;
+            gap: 5px;
+            border-top: 1px solid #333;
+        }
+
+        /* ボタンの列：横スクロール可能 */
+        .btn-row {
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 0 10px;
+            gap: 10px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; 
+        }
+        .btn-row::-webkit-scrollbar { display: none; }
+
+        /* ボタンスタイル */
+        button {
+            background: #222;
+            color: #666;
+            border: 1px solid #333;
+            padding: 10px 15px;
+            font-size: 14px;
+            border-radius: 4px;
+            min-width: 50px;
+            flex-shrink: 0;
+        }
+        button:active { background: #444; color: #fff; }
+
+        .back-link {
+            color: #444;
+            text-decoration: none;
+            font-size: 12px;
+            padding: 5px 10px;
+            display: block;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
 
+    <input type="password" id="passInput" autocomplete="off">
+
     <div id="viewer"></div>
     
     <div id="controls">
-        <a href="index.html">← 戻る</a>
-        <div>
-            <button id="prev" onclick="rendition.prev()">＜ 前へ</button>
-            <button id="next" onclick="rendition.next()">次へ ＞</button>
+        <div class="btn-row">
+            <button onclick="skip(-50)">-50</button>
+            <button onclick="skip(-10)">-10</button>
+            <button onclick="skip(-5)">-5</button>
+            <button onclick="rendition.prev()" style="flex-grow:1; font-weight:bold;">＜ 1</button>
         </div>
+        <div class="btn-row">
+            <button onclick="rendition.next()" style="flex-grow:1; font-weight:bold;">1 ＞</button>
+            <button onclick="skip(5)">+5</button>
+            <button onclick="skip(10)">+10</button>
+            <button onclick="skip(50)">+50</button>
+        </div>
+        <a href="index.html" class="back-link">Return</a>
     </div>
 
     <script>
-        // URLパラメータからファイル名を取得 (?book=epubs/1.epub)
-        const params = new URLSearchParams(window.location.search);
-        const url = params.get('book');
-
-        if (!url) {
-            alert("本が指定されていません。一覧に戻ります。");
-            window.location.href = "index.html";
-        }
-
-        // 簡易認証チェック（URL直打ち対策・簡易）
-        if (sessionStorage.getItem('auth') !== 'true') {
-            alert("ログインしてください。");
-            window.location.href = "index.html";
-        }
-
-        // ePubの表示設定
-        const book = ePub(url);
-        const rendition = book.renderTo("viewer", {
-            width: "100%",
-            height: "100%",
-            flow: "scrolled-doc" // スクロール読み（漫画や小説向け）
-            // ページめくり式がいい場合は flow: "paginated" に変更してください
+        // --- 共通機能：パニックボタン (dキー) ---
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'd') {
+                document.body.style.display = 'none';
+                window.location.replace("https://www.google.com");
+            }
         });
 
-        rendition.display();
+        const passInput = document.getElementById('passInput');
+        const viewer = document.getElementById('viewer');
+        const controls = document.getElementById('controls');
+        let book, rendition;
 
-        // キーボード操作対応
-        document.addEventListener("keyup", function(e) {
-            if ((e.keyCode || e.which) == 37) rendition.prev(); // 左キー
-            if ((e.keyCode || e.which) == 39) rendition.next(); // 右キー
+        // --- 認証ロジック ---
+        function unlockViewer() {
+            passInput.style.display = 'none';
+            viewer.style.display = 'block';
+            controls.style.display = 'flex'; // flexに戻す
+            
+            // 認証済みマーク（セッション中のみ有効）
+            sessionStorage.setItem('auth', 'true');
+            
+            // ここで初めて本を読み込む
+            initReader();
+        }
+
+        // 1. 既に認証済みかチェック
+        if (sessionStorage.getItem('auth') === 'true') {
+            unlockViewer();
+        }
+
+        // 2. 未認証ならパスワード入力待ち
+        passInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (this.value === 'haru33haru') {
+                    unlockViewer();
+                } else {
+                    this.value = ''; // 黙ってクリア
+                }
+            }
         });
+
+        // --- EPUBリーダー機能 ---
+        function initReader() {
+            const params = new URLSearchParams(window.location.search);
+            const url = params.get('book');
+
+            if (!url) {
+                // 本の指定がない場合、黙ってindexへ戻すか、真っ黒のままにする
+                // window.location.href = "index.html"; 
+                return; 
+            }
+
+            book = ePub(url);
+            rendition = book.renderTo("viewer", {
+                width: "100%",
+                height: "100%",
+                flow: "paginated"
+            });
+
+            // ダークテーマ適用
+            rendition.themes.register("dark", {
+                body: { color: "#ccc", background: "#000" },
+                p: { "font-family": "sans-serif !important" }
+            });
+
+            rendition.display().then(() => {
+                rendition.themes.select("dark");
+            });
+        }
+
+        // ページ飛ばし機能
+        async function skip(count) {
+            if (!rendition) return;
+            const isNext = count > 0;
+            const absCount = Math.abs(count);
+            
+            for (let i = 0; i < absCount; i++) {
+                if (isNext) {
+                    await rendition.next();
+                } else {
+                    await rendition.prev();
+                }
+            }
+        }
     </script>
 </body>
 </html>
